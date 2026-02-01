@@ -45,13 +45,13 @@ O arquivo principal da automação está disponível neste repositório como `wo
 
 Como o projeto foi desenvolvido em ambiente local (localhost), um dos principais desafios técnicos foi configurar o **Telegram Trigger**.
 
-A API do Telegram utiliza **Webhooks** para enviar as mensagens do usuário para o bot. Porém, por questões de segurança e arquitetura de rede, o Telegram não consegue enviar dados diretamente para uma máquina local (`localhost:5678`).
+A API do Telegram utiliza **Webhooks** para enviar as mensagens do usuário para o bot. Porém, por questões de segurança e arquitetura de rede, o Telegram não consegue enviar dados diretamente para uma máquina local (localhost:5678).
 
 ### Solução: Tunneling com ngrok
 Para contornar essa limitação sem precisar subir o projeto para um servidor VPS pago durante a fase de desenvolvimento, utilizei o **ngrok**.
 
 1. **O Problema:** O n8n rodando localmente não possui um IP público nem HTTPS válido, requisitos obrigatórios para o Webhook do Telegram.
-2. **A Solução:** O ngrok criou um túnel seguro, expondo a porta local do n8n (`5678`) para a internet através de uma URL pública temporária (ex: `https://xyz.ngrok-free.app`).
+2. **A Solução:** O ngrok criou um túnel seguro, expondo a porta local do n8n (5678) para a internet através de uma URL pública temporária (ex: https://xyz.ngrok-free.app).
 3. **Configuração:** Foi necessário configurar a variável de ambiente `WEBHOOK_URL` no n8n apontando para o endereço gerado pelo ngrok, permitindo que o bot recebesse as mensagens em tempo real.
 
 ---
