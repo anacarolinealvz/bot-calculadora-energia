@@ -1,0 +1,523 @@
+{
+  "name": "Automatização conta de energia",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "// --- CONFIGURAÇÕES ---\nconst tarifa = 0.92; // ⚠️ AJUSTE AQUI O PREÇO DO SEU KWH (Ex: 0.92)\nconst diasNoMes = 30; // Base comercial padrão\n\n// Pega o dia de hoje (Ex: se for dia 15, calcula gasto de 15 dias)\nconst diaHoje = new Date().getDate(); \n\nlet totalReais = 0;\nlet totalKwh = 0;\n\nfor (const item of items) {\n  // 1. LIMPEZA DOS DADOS (Troca vírgula por ponto e garante que é número)\n  const etiqueta = Number((item.json.Etiqueta_kWh_Mes || 0).toString().replace(',', '.'));\n  const watts = Number((item.json.Potencia_Watts || 0).toString().replace(',', '.'));\n  const horas = Number((item.json.Horas_Dia || 0).toString().replace(',', '.'));\n\n  let consumoDiario = 0;\n\n  // 2. O CÉREBRO DA ESCOLHA\n  if (etiqueta > 0) {\n    // Se tem etiqueta (Geladeira), divide por 30 pra achar o dia\n    consumoDiario = etiqueta / diasNoMes;\n  } else if (watts > 0 && horas > 0) {\n    // Se é manual (Lâmpada), faz a conta de engenheiro\n    consumoDiario = (watts * horas) / 1000;\n  }\n\n  // 3. SOMA AO TOTAL DA CONTA\n  // (Consumo de 1 dia * Quantos dias passaram no mês)\n  totalKwh += (consumoDiario * diaHoje);\n  totalReais += (consumoDiario * diaHoje * tarifa);\n}\n\n// 4. ENTREGA O RESULTADO FINAL\nreturn [{\n  json: {\n    dia_referencia: diaHoje,\n    total_kwh: totalKwh.toFixed(2).replace('.', ','),\n    total_reais: totalReais.toFixed(2).replace('.', ',')\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        176
+      ],
+      "id": "c5337af1-d647-4618-b6f5-a2f3ce71ca85",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e496e9eb-64a1-4a49-8e9e-000c32a2369e",
+              "name": "minha_carta",
+              "value": "=Olá! ⚡ Sua {{ $json.aparelho }} gastou {{ $json.consumo }} kWh essa semana. Isso dá uns R$ {{ ($json.consumo * 0.98).toFixed(2) }} de conta de luz! 💸",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        784,
+        -432
+      ],
+      "id": "5afdfa54-949f-4a9a-90f2-0c36afe76f33",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "chatId": "1158527587",
+        "text": "=*Relatório de Consumo* 🗓️ Hoje é dia: *{{ $json.dia_referencia }}*  Até agora, você gastou aproximadamente: ⚡ *{{ $json.total_kwh }} kWh* 💰 *R$ {{ $json.total_reais }}*  _(Lembrando que o mês fecha dia 30!)_",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        736,
+        176
+      ],
+      "id": "cc190fb4-ad27-4c08-9a62-d529b35bbe5c",
+      "name": "Send a text message",
+      "webhookId": "c39d7457-a3f4-4526-82d2-5b1968aef9cd",
+      "credentials": {
+        "telegramApi": {
+          "id": "7gP77t7AatXJSxfM",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -496,
+        -256
+      ],
+      "id": "f8b95bf8-dd17-4cd8-9e09-6071183462ab",
+      "name": "Telegram Trigger",
+      "webhookId": "80abaa24-af2b-4ba7-9d0f-184d0cf337fd",
+      "credentials": {
+        "telegramApi": {
+          "id": "7gP77t7AatXJSxfM",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "fee11b71-a590-4f9c-81a3-86bd7ac5c8f7",
+                    "leftValue": "={{ $json.message.text }}",
+                    "rightValue": "oi",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "146e7903-a0a3-46b1-be71-57561f699ded",
+                    "leftValue": "={{ $json.message.text }}",
+                    "rightValue": "1",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "af0e3d45-44b8-4a97-8e98-f75fa0c93012",
+                    "leftValue": "={{ $json.message.text }}",
+                    "rightValue": "/etiqueta",
+                    "operator": {
+                      "type": "string",
+                      "operation": "startsWith"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "83c2b3b8-4d1b-4569-a9ed-59331260d44b",
+                    "leftValue": "={{ $json.message.text }}",
+                    "rightValue": "/manual",
+                    "operator": {
+                      "type": "string",
+                      "operation": "regex"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "71cb78bf-94ea-41d6-9348-d2083ce50e33",
+                    "leftValue": "={{ $json.message.text }}",
+                    "rightValue": "2",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -176,
+        -256
+      ],
+      "id": "8a54704f-341c-4d3b-81bc-0a9175442446",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "chatId": "1158527587",
+        "text": "Oi, que bom ter você aqui! \nPara prosseguir escolha:  \n1. Cadastrar novo aparelho  \n2. Ver consumo mensal",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        224,
+        -496
+      ],
+      "id": "1681076d-57c8-4f11-bc68-924b2bea8b56",
+      "name": "Enviar Menu",
+      "webhookId": "d018c0d9-92e5-4124-98ce-47c8ddb0167a",
+      "credentials": {
+        "telegramApi": {
+          "id": "7gP77t7AatXJSxfM",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1hYlX-hOe7u7LG2F9Y9hHmp20jfzxrsctKg9aTtRBZzE",
+          "mode": "list",
+          "cachedResultName": "Controle de Energia",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1hYlX-hOe7u7LG2F9Y9hHmp20jfzxrsctKg9aTtRBZzE/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Página1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1hYlX-hOe7u7LG2F9Y9hHmp20jfzxrsctKg9aTtRBZzE/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Nome": "={{ $json.Nome }}",
+            "Etiqueta_kWh_Mes": "={{ $json.Etiqueta_kWh_Mes }}",
+            "Potencia_Watts": "={{ $json.Potencia_Watts }}",
+            "Horas_Dia": "={{ $json.Horas_Dia }}",
+            "Data_Cadastro": "={{ $json.Data_Cadastro }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Nome",
+              "displayName": "Nome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Etiqueta_kWh_Mes",
+              "displayName": "Etiqueta_kWh_Mes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Potencia_Watts",
+              "displayName": "Potencia_Watts",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Horas_Dia",
+              "displayName": "Horas_Dia",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Data_Cadastro",
+              "displayName": "Data_Cadastro",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        464,
+        -96
+      ],
+      "id": "d1e63d27-f86f-45a6-83fb-5c898ca6dc81",
+      "name": "Armazenamento dos dados",
+      "credentials": {
+        "googleApi": {
+          "id": "0GZ8Lq4kdh9k2O2e",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- BLINDAGEM CONTRA ERROS ---\n// O sinal ?. avisa: \"Se message não existir, não trave, apenas retorne vazio\"\nconst msg = items[0].json.message?.text; \n\n// Se não tiver mensagem (ex: teste vazio), o código para aqui suavemente\nif (!msg) {\n  return [{ json: { erro: \"Aguardando mensagem do Telegram...\" } }];\n}\n// ------------------------------\n\nconst pedacos = msg.split(\" \");\n\n// Descobre o comando e remove ele da lista\nconst comando = pedacos[0].toLowerCase();\npedacos.shift(); \n\n// Cria as variáveis com os NOMES EXATOS da sua planilha\nlet Nome = \"\";\nlet Etiqueta_kWh_Mes = \"\";\nlet Potencia_Watts = \"\";\nlet Horas_Dia = \"\";\n\n// Lógica para preencher as variáveis certas\nif (comando.startsWith(\"/etiqueta\")) {\n  // Se for etiqueta, o último pedaço é o valor da etiqueta\n  Etiqueta_kWh_Mes = pedacos.pop(); \n  Nome = pedacos.join(\" \"); \n} else {\n  // Se for manual, os últimos pedaços são Horas e Watts\n  Horas_Dia = pedacos.pop();    \n  Potencia_Watts = pedacos.pop();    \n  Nome = pedacos.join(\" \"); \n}\n\n// Retorna o objeto pronto para o Google Sheets\nreturn [{\n  json: {\n    Nome: Nome,\n    Etiqueta_kWh_Mes: Etiqueta_kWh_Mes,\n    Potencia_Watts: Potencia_Watts,\n    Horas_Dia: Horas_Dia,\n    Data_Cadastro: new Date().toLocaleDateString('pt-BR')\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        -96
+      ],
+      "id": "d0f88e1a-39da-4168-9993-111548d14c21",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "chatId": "1158527587",
+        "text": "Para prosseguir com o seu cadastro precisamos de algumas informações\n\nNome e kWh/mês (caso o aparelho já tenha a etiqueta). Senão tiver, preencha com Nome, Potência (Watts) e Horas de uso por dia.  \n\n\n**Responda usando um destes modelos:**\n\nA) Se tiver Etiqueta: `/etiqueta Nome Valor` \nEx: `/etiqueta Geladeira 45.5` \n\nB) Se for Manual (Watts): `/manual Nome Watts Horas` \nEx: `/manual TV 150 5`",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        208,
+        -304
+      ],
+      "id": "c1eac965-dd50-42d3-a77c-f165d5f44c8a",
+      "name": "Enviar formulário de cadastro",
+      "webhookId": "d018c0d9-92e5-4124-98ce-47c8ddb0167a",
+      "credentials": {
+        "telegramApi": {
+          "id": "7gP77t7AatXJSxfM",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "documentId": {
+          "__rl": true,
+          "value": "1hYlX-hOe7u7LG2F9Y9hHmp20jfzxrsctKg9aTtRBZzE",
+          "mode": "list",
+          "cachedResultName": "Controle de Energia",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1hYlX-hOe7u7LG2F9Y9hHmp20jfzxrsctKg9aTtRBZzE/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Página1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1hYlX-hOe7u7LG2F9Y9hHmp20jfzxrsctKg9aTtRBZzE/edit#gid=0"
+        },
+        "options": {
+          "returnFirstMatch": false
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        208,
+        176
+      ],
+      "id": "a87097b7-aa94-49a6-b6ea-751229f9cfd9",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleApi": {
+          "id": "0GZ8Lq4kdh9k2O2e",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        []
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message": {
+      "main": [
+        []
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Enviar Menu",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Enviar formulário de cadastro",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Armazenamento dos dados": {
+      "main": [
+        []
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Armazenamento dos dados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar formulário de cadastro": {
+      "main": [
+        []
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "3edd1210-45b8-4fd6-b48d-46cb1ca50b55",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9c3c0a71f4489dca14101cf24697e61da36df63614a512a07cd20b06bee9cfea"
+  },
+  "id": "5umZT6LSW0zg39NN",
+  "tags": []
+}
