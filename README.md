@@ -39,7 +39,10 @@ O arquivo principal da automação está disponível neste repositório como `wo
 1. Instale o [n8n](https://n8n.io/) localmente ou via Docker.
 2. Importe o arquivo `.json`.
 3. Configure suas credenciais (Telegram Bot Token e Google Sheets OAuth).
-4. Crie uma planilha com as colunas: `Nome`, `Etiqueta_kWh_Mes`, `Potencia_Watts`, `Horas_Dia`.
+4. Crie uma planilha com as colunas: Nome, Etiqueta_kWh_Mes, Potencia_Watts, Horas_Dia.
+
+- 📊 **Documentação**
+  - [Planilha do projeto](https://docs.google.com/spreadsheets/d/1hYlX-hOe7u7LG2F9Y9hHmp20jfzxrsctKg9aTtRBZzE/edit?usp=sharing)
 
 ## 🔧 Desafios de Implementação Local (Simulação)
 
